@@ -13,6 +13,13 @@ struct Road {
     int width;
 };
 
+struct Graph {
+    std::vector<Road> edges;
+    int numNodes;
+    int numEdges;
+    int minWidth;
+};
+
 void generateConnectedGraph(int numNodes, int numEdges, const std::string& fileName) {
     if (numEdges < numNodes - 1 || numEdges > numNodes * (numNodes - 1) / 2) {
         std::cout << "Invalid number of edges for a connected graph." << std::endl;
@@ -51,34 +58,49 @@ void generateConnectedGraph(int numNodes, int numEdges, const std::string& fileN
     file.close();
 }
 
-std::vector<Road> readGraphFromFile(const std::string& fileName) {
+Graph readGraphFromFile(const std::string& fileName) {
+    Graph graph;
     std::ifstream file(fileName);
-    int numNodes, numRoads;
-    file >> numNodes >> numRoads;
-    std::vector<Road> roads(numRoads);
-    for (int i = 0; i < numRoads; i++) {
-        file >> roads[i].from >> roads[i].to >> roads[i].width;
+//    int numNodes, numRoads;
+    int minWidth = INT_MAX;
+    file >> graph.numNodes >> graph.numEdges;
+    std::vector<Road> edges(graph.numEdges);
+    for (int i = 0; i < graph.numEdges; i++) {
+        file >> edges[i].from >> edges[i].to >> edges[i].width;
+        minWidth = std::min(minWidth, edges[i].width);
     }
-    return roads;
+    graph.edges = edges;
+    graph.minWidth = minWidth;
+    std::cout << "minWidth = " <<graph.minWidth << std::endl;
+    return graph;
 }
 
-int widestPath(std::vector<Road>& roads, int start, int end) {
-    int n = roads.size();
-    std::vector<std::vector<int>> graph(n, std::vector<int>(n, 0));
+std::vector<std::vector<int>> getAdjacencyMatrix(Graph& graph) {
+    std::vector<std::vector<int>> adjacency(
+            graph.numNodes,
+            std::vector<int>(graph.numNodes, 0));
 
-    for (const auto& road : roads) {
-        graph[road.from][road.to] = road.width;
-        graph[road.to][road.from] = road.width;
+    for (const auto& edge : graph.edges) {
+        if (edge.width > adjacency[edge.from][edge.to] && edge.width > graph.minWidth) {
+            adjacency[edge.from][edge.to] = edge.width;
+            adjacency[edge.to][edge.from] = edge.width;
+        }
     }
+    return adjacency;
+}
 
-    std::vector<int> max_width(n, INT_MIN);
-    max_width[start] = INT_MAX;
+int widestPath(Graph& graph, int start, int end) {
+    std::vector<Road> roads = graph.edges;
+    std::vector<std::vector<int>> adjacency = getAdjacencyMatrix(graph);
+
+    std::vector<int> maxWidth(graph.numNodes, INT_MIN);
+    maxWidth[start] = INT_MAX;
 
     std::queue<int> q;
     q.push(start);
 
     // Array to keep track of the previous node in the path
-    std::vector<int> previous(graph.size(), -1);
+    std::vector<int> previous(adjacency.size(), -1);
 
     // BFS method
     while (!q.empty()) {
@@ -87,13 +109,12 @@ int widestPath(std::vector<Road>& roads, int start, int end) {
 
 //        std::cout << curr << std::endl;
 
+        for (int i = 0; i < graph.numNodes; i++) {
+            int width = std::min(maxWidth[curr], adjacency[curr][i]);
 
-        for (int i = 0; i < n; i++) {
-            int width = std::min(max_width[curr], graph[curr][i]);
-
-            if (graph[curr][i] > 0 && width > max_width[i]) {
+            if (adjacency[curr][i] > 0 && width > maxWidth[i]) {
 //                std::cout << width << " " << graph[curr][i] << std::endl;
-                max_width[i] = width;
+                maxWidth[i] = width;
                 previous[i] = curr;
                 q.push(i);
             }
@@ -106,21 +127,21 @@ int widestPath(std::vector<Road>& roads, int start, int end) {
     while (currNode != -1) {
         path.push_back(currNode);
         if (previous[currNode] != -1) {
-            int width = graph[previous[currNode]][currNode];
+            int width = adjacency[previous[currNode]][currNode];
             std::cout << width << std::endl;
         }
         currNode = previous[currNode];
     }
     reverse(path.begin(), path.end());
 
-    return max_width[end];
+    return maxWidth[end];
 }
 
 void getSolution(const std::string& fileName, int capitalId, int ZodangaId) {
     std::cout << "capitalId = " << capitalId << "; " << "ZodangaId = " << ZodangaId << std::endl;
-    std::vector<Road> roads = readGraphFromFile(fileName);
+    Graph graph = readGraphFromFile(fileName);
 
-    int max_width = widestPath(roads, capitalId, ZodangaId);
+    int max_width = widestPath(graph, capitalId, ZodangaId);
     std::cout << "max_width = " << max_width << std::endl;
     int a = 1;
 }
