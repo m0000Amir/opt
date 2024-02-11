@@ -4,7 +4,7 @@
 #include <queue>
 #include <random>
 
-const int MIN_ROAD_WIDTH = 1;
+const int MIN_ROAD_WIDTH = 10;
 const int MAX_ROAD_WIDTH = 100;
 
 struct Road {
@@ -20,6 +20,14 @@ struct Graph {
     int minWidth;
 };
 
+struct Path {
+    int from;
+    int to;
+    std::vector<int> track;
+    std::vector<int> minMaxWidth;
+    int minWidth;
+};
+
 void generateConnectedGraph(int numNodes, int numEdges, const std::string& fileName) {
     if (numEdges < numNodes - 1 || numEdges > numNodes * (numNodes - 1) / 2) {
         std::cout << "Invalid number of edges for a connected graph." << std::endl;
@@ -29,23 +37,22 @@ void generateConnectedGraph(int numNodes, int numEdges, const std::string& fileN
     std::ofstream file(fileName);
     file << numNodes << " " << numEdges << std::endl;
 
-    // prepare randomizers for edges and weights
+    // Prepare randomizers for edges and weights
     std::random_device rd;
     std::mt19937  gen(rd());
     std::uniform_int_distribution<> weightDist(MIN_ROAD_WIDTH,MAX_ROAD_WIDTH);
 
-    // shuffle all nodes to get random connected graph
+    // Shuffle all nodes to get random connected graph
     std::vector<int> nodes(numNodes);
     std::iota(nodes.begin(), nodes.end(), 0);
     std::shuffle(nodes.begin(), nodes.end(), gen);
 
-    // connected graph has `numNodes - 1` nodes
+    // Connected graph has `numNodes - 1` nodes
     for (int i = 0; i < numNodes - 1; i++) {
         int from = nodes[i];
         int to = nodes[i + 1];
         int weight = weightDist(gen);
         file << from << " " << to << " " << weight << std::endl;
-        std::cout << from << "--" << to << std::endl;
     }
 
     // Add remaining edges
@@ -61,7 +68,6 @@ void generateConnectedGraph(int numNodes, int numEdges, const std::string& fileN
 Graph readGraphFromFile(const std::string& fileName) {
     Graph graph;
     std::ifstream file(fileName);
-//    int numNodes, numRoads;
     int minWidth = INT_MAX;
     file >> graph.numNodes >> graph.numEdges;
     std::vector<Road> edges(graph.numEdges);
@@ -71,7 +77,6 @@ Graph readGraphFromFile(const std::string& fileName) {
     }
     graph.edges = edges;
     graph.minWidth = minWidth;
-    std::cout << "minWidth = " <<graph.minWidth << std::endl;
     return graph;
 }
 
@@ -89,12 +94,34 @@ std::vector<std::vector<int>> getAdjacencyMatrix(Graph& graph) {
     return adjacency;
 }
 
-int widestPath(Graph& graph, int start, int end) {
+void reconstructWidestPath(Graph& graph, Path& path) {
+    std::vector<std::vector<int>> adjacency = getAdjacencyMatrix(graph);
+    std::vector<int> route;
+
+    int currNode = path.to;
+    while (currNode != -1) {
+        route.push_back(currNode);
+        if (path.track[currNode] != -1) {
+            int width = adjacency[path.track[currNode]][currNode];
+            std::cout << width << std::endl;
+        }
+        currNode = path.track[currNode];
+    }
+    reverse(route.begin(), route.end());
+
+    std::cout << "(" << path.from << ") ";
+    for (int i = 1; i < route.size(); i++) {
+        std::cout << "-" << adjacency[route[i - 1]][route[i]] << "-";
+        std::cout << " (" << route[i] << ") ";
+    }
+}
+
+Path widestPath(Graph& graph, int start, int end) {
     std::vector<Road> roads = graph.edges;
     std::vector<std::vector<int>> adjacency = getAdjacencyMatrix(graph);
 
-    std::vector<int> maxWidth(graph.numNodes, INT_MIN);
-    maxWidth[start] = INT_MAX;
+    std::vector<int> minMaxWidth(graph.numNodes, INT_MIN);
+    minMaxWidth[start] = INT_MAX;
 
     std::queue<int> q;
     q.push(start);
@@ -102,48 +129,51 @@ int widestPath(Graph& graph, int start, int end) {
     // Array to keep track of the previous node in the path
     std::vector<int> previous(adjacency.size(), -1);
 
-    // BFS method
+    // BFS method to find path from start to end
     while (!q.empty()) {
         int curr = q.front();
         q.pop();
 
-//        std::cout << curr << std::endl;
-
         for (int i = 0; i < graph.numNodes; i++) {
-            int width = std::min(maxWidth[curr], adjacency[curr][i]);
+            int width = std::min(minMaxWidth[curr], adjacency[curr][i]);
 
-            if (adjacency[curr][i] > 0 && width > maxWidth[i]) {
-//                std::cout << width << " " << graph[curr][i] << std::endl;
-                maxWidth[i] = width;
+            if (adjacency[curr][i] > 0 && width > minMaxWidth[i]) {
+                minMaxWidth[i] = width;
                 previous[i] = curr;
                 q.push(i);
             }
         }
     }
 
-    // Reconstruct the widest path
-    std::vector<int> path;
-    int currNode = end;
-    while (currNode != -1) {
-        path.push_back(currNode);
-        if (previous[currNode] != -1) {
-            int width = adjacency[previous[currNode]][currNode];
-            std::cout << width << std::endl;
-        }
-        currNode = previous[currNode];
-    }
-    reverse(path.begin(), path.end());
+    Path widestPath = {
+            start,
+            end,
+            previous,
+            minMaxWidth,
+            minMaxWidth[end]
+    };
 
-    return maxWidth[end];
+    return widestPath;
 }
 
-void getSolution(const std::string& fileName, int capitalId, int ZodangaId) {
-    std::cout << "capitalId = " << capitalId << "; " << "ZodangaId = " << ZodangaId << std::endl;
+void getSolution(const std::string& fileName, int capitalId, int ZodangaId, bool isReconstruct = false) {
+    std::cout << "Capital Id is " << capitalId << "; " << "Zodanga Id is " << ZodangaId << std::endl;
     Graph graph = readGraphFromFile(fileName);
+    std::cout << "Minimum of road width is " <<graph.minWidth << std::endl;
 
-    int max_width = widestPath(graph, capitalId, ZodangaId);
-    std::cout << "max_width = " << max_width << std::endl;
-    int a = 1;
+    Path path = widestPath(graph, capitalId, ZodangaId);
+    if (path.minWidth != INT_MIN) {
+        // The maximum feasible width is equal to the difference between
+        // the minimum edge width of the widest path and the minimum width
+        // of the entire graphs.
+        std::vector<int> feasibleWidth = {1, path.minWidth - graph.minWidth};
+        std::cout << "Feasible range of width is [" << feasibleWidth[0] << " : " << feasibleWidth[1] << "]" << std::endl;
+    } else {
+        std::cout << "There is not feasible width range." << "\n";
+        std::cout << "Widest path consist of road, which equal to minimal width of road." << "\n";
+        std::cout << "width `ra` will not be equal to width `rb`" << "\n";
+    }
+    if (isReconstruct) reconstructWidestPath(graph, path);
 }
 
 int main(int argc, char* argv[]) {
