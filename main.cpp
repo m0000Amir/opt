@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <queue>
 #include <random>
 
 const int MIN_ROAD_WIDTH = 1;
@@ -40,7 +41,7 @@ void generateConnectedGraph(int numNodes, int numEdges, const std::string& fileN
         std::cout << from << "--" << to << std::endl;
     }
 
-    // add remaining edges
+    // Add remaining edges
     for (int i = 0; i < numEdges - (numNodes - 1); i++) {
         int from = nodes[i % numNodes];
         int to = nodes[(i + 1) % numNodes];
@@ -54,17 +55,73 @@ std::vector<Road> readGraphFromFile(const std::string& fileName) {
     std::ifstream file(fileName);
     int numNodes, numRoads;
     file >> numNodes >> numRoads;
-    std::vector<Road> graph(numRoads);
+    std::vector<Road> roads(numRoads);
     for (int i = 0; i < numRoads; i++) {
-        file >> graph[i].from >> graph[i].to >> graph[i].width;
+        file >> roads[i].from >> roads[i].to >> roads[i].width;
     }
-    return graph;
+    return roads;
+}
+
+int widestPath(std::vector<Road>& roads, int start, int end) {
+    int n = roads.size();
+    std::vector<std::vector<int>> graph(n, std::vector<int>(n, 0));
+
+    for (const auto& road : roads) {
+        graph[road.from][road.to] = road.width;
+        graph[road.to][road.from] = road.width;
+    }
+
+    std::vector<int> max_width(n, INT_MIN);
+    max_width[start] = INT_MAX;
+
+    std::queue<int> q;
+    q.push(start);
+
+    // Array to keep track of the previous node in the path
+    std::vector<int> previous(graph.size(), -1);
+
+    // BFS method
+    while (!q.empty()) {
+        int curr = q.front();
+        q.pop();
+
+//        std::cout << curr << std::endl;
+
+
+        for (int i = 0; i < n; i++) {
+            int width = std::min(max_width[curr], graph[curr][i]);
+
+            if (graph[curr][i] > 0 && width > max_width[i]) {
+//                std::cout << width << " " << graph[curr][i] << std::endl;
+                max_width[i] = width;
+                previous[i] = curr;
+                q.push(i);
+            }
+        }
+    }
+
+    // Reconstruct the widest path
+    std::vector<int> path;
+    int currNode = end;
+    while (currNode != -1) {
+        path.push_back(currNode);
+        if (previous[currNode] != -1) {
+            int width = graph[previous[currNode]][currNode];
+            std::cout << width << std::endl;
+        }
+        currNode = previous[currNode];
+    }
+    reverse(path.begin(), path.end());
+
+    return max_width[end];
 }
 
 void getSolution(const std::string& fileName, int capitalId, int ZodangaId) {
-    std::cout << "capitalId = " << capitalId << "; " << "ZodangaId = " << ZodangaId;
-    std::vector<Road> graph = readGraphFromFile(fileName);
+    std::cout << "capitalId = " << capitalId << "; " << "ZodangaId = " << ZodangaId << std::endl;
+    std::vector<Road> roads = readGraphFromFile(fileName);
 
+    int max_width = widestPath(roads, capitalId, ZodangaId);
+    std::cout << "max_width = " << max_width << std::endl;
     int a = 1;
 }
 
