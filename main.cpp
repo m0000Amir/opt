@@ -157,7 +157,11 @@ Path widestPath(Graph& graph, int start, int end) {
     return widestPath;
 }
 
-std::vector<int> getSolution(const std::string& fileName, int capitalId, int ZodangaId, bool isReconstruct = false) {
+std::vector<int> getSolution(
+        const std::string& fileName,
+        int capitalId, int ZodangaId,
+        bool isReconstruct = false
+                ) {
     std::cout << "Capital Id is " << capitalId << "; " << "Zodanga Id is " << ZodangaId << std::endl;
     Graph graph = readGraphFromFile(fileName);
     std::cout << "Minimum of road width is " <<graph.minWidth << std::endl;
@@ -175,7 +179,8 @@ std::vector<int> getSolution(const std::string& fileName, int capitalId, int Zod
         return feasibleWidth;
     } else {
         std::cout << "There is not feasible width range." << "\n";
-        std::cout << "Widest path consist of road, which width is equal to minimal width of road." << "\n";
+        std::cout << "Widest path consist of road, which width \n "
+                     "is equal to minimal width of road." << "\n";
         std::cout << "Width `ra` is not equal to width `rb`" << "\n";
         return {-1, -1};
     }
