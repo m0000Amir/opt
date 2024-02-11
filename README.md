@@ -46,7 +46,7 @@ clang++ -std=c++14 -o opt.exe main.cpp
 ```cpp
 void reconstructWidestPath(Graph& graph, Path& path)
 ```
-Function reconstructs widest path from capital to Zodanga with widths of roads. To call the function `bool isReconstruct` must be `true` (default false). Only small size problems are preferred.
+Function reconstructs the widest path from the capital to Zodanga with widths of roads. To call the function `bool isReconstruct` must be `true` (default false). Only small-size problems are preferred.
 
 Example - Capital Id is 3, Zodanga Id is 4. Widest path is
 ```
