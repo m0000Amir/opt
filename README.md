@@ -1,4 +1,4 @@
-# program to solve following problem:
+# Program to solve the following problem:
 
 Tractors ride only by asphalt undirected roads on the planet Barsoom. While moving, tractors destroy roadbed under themselves. A tractor Harrison made a trip from the Capital to Zodanga city.
 
