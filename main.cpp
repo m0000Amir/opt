@@ -29,7 +29,8 @@ struct Path {
 };
 
 void generateConnectedGraph(int numNodes, int numEdges, const std::string& fileName) {
-    if (numEdges < numNodes - 1 || numEdges > numNodes * (numNodes - 1) / 2) {
+    // Connected graph has a number of edges is greater than number of nodes - 1
+    if (numEdges < numNodes - 1) {
         std::cout << "Invalid number of edges for a connected graph." << std::endl;
         return ;
     }
@@ -103,7 +104,6 @@ void reconstructWidestPath(Graph& graph, Path& path) {
         route.push_back(currNode);
         if (path.track[currNode] != -1) {
             int width = adjacency[path.track[currNode]][currNode];
-            std::cout << width << std::endl;
         }
         currNode = path.track[currNode];
     }
@@ -114,6 +114,7 @@ void reconstructWidestPath(Graph& graph, Path& path) {
         std::cout << "-" << adjacency[route[i - 1]][route[i]] << "-";
         std::cout << " (" << route[i] << ") ";
     }
+    std::cout << std::endl;
 }
 
 Path widestPath(Graph& graph, int start, int end) {
@@ -156,24 +157,29 @@ Path widestPath(Graph& graph, int start, int end) {
     return widestPath;
 }
 
-void getSolution(const std::string& fileName, int capitalId, int ZodangaId, bool isReconstruct = false) {
+std::vector<int> getSolution(const std::string& fileName, int capitalId, int ZodangaId, bool isReconstruct = false) {
     std::cout << "Capital Id is " << capitalId << "; " << "Zodanga Id is " << ZodangaId << std::endl;
     Graph graph = readGraphFromFile(fileName);
     std::cout << "Minimum of road width is " <<graph.minWidth << std::endl;
 
     Path path = widestPath(graph, capitalId, ZodangaId);
+
+    if (isReconstruct) reconstructWidestPath(graph, path);
+
     if (path.minWidth != INT_MIN) {
         // The maximum feasible width is equal to the difference between
         // the minimum edge width of the widest path and the minimum width
         // of the entire graphs.
         std::vector<int> feasibleWidth = {1, path.minWidth - graph.minWidth};
         std::cout << "Feasible range of width is [" << feasibleWidth[0] << " : " << feasibleWidth[1] << "]" << std::endl;
+        return feasibleWidth;
     } else {
         std::cout << "There is not feasible width range." << "\n";
-        std::cout << "Widest path consist of road, which equal to minimal width of road." << "\n";
-        std::cout << "width `ra` will not be equal to width `rb`" << "\n";
+        std::cout << "Widest path consist of road, which width is equal to minimal width of road." << "\n";
+        std::cout << "Width `ra` is not equal to width `rb`" << "\n";
+        return {-1, -1};
     }
-    if (isReconstruct) reconstructWidestPath(graph, path);
+
 }
 
 int main(int argc, char* argv[]) {
@@ -192,7 +198,7 @@ int main(int argc, char* argv[]) {
         int capitalId = std::stoi(argv[2]);
         int ZodangaId = std::stoi(argv[3]);
         std::string fileName = argv[4];
-        getSolution(fileName, capitalId, ZodangaId);
+        std::vector<int> feasibleWidth = getSolution(fileName, capitalId, ZodangaId);
     } else {
         std::cerr << "Invalid command" << std::endl;
         return 1;
